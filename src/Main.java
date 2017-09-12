@@ -3,6 +3,9 @@ import java.util.HashMap;
 
 public class Main {
     public static String extractMac(String str) {
+        if(str == null)
+            return null;
+
         String value = str.toUpperCase().replaceAll("(^\\p{Z}+|\\p{Z}+$)", "");//remove space
         int s = value.indexOf("MAC=");
         int e = value.indexOf(";");
@@ -10,13 +13,7 @@ public class Main {
         return mac;
     }
 
-    public static void main(String[] args) {
-        String ipStr = "192.168.0.255";
-        String searchTarget = "urn:dial-multiscreen-org:service:dial:1";       
-        SSDP ssdp = new SSDP();
-        HashMap<String, String> response = ssdp.discover(searchTarget);
-        String macStr = extractMac(response.get("WAKEUP"));
-
+    private static void executeWOL(String macStr, String ipStr) {
         if(macStr != null) {
             System.out.println("Ok...TV Mac is successfully receved");
             System.out.println("Please Power off your TV");
@@ -37,5 +34,38 @@ public class Main {
             System.out.println("Failed");
         }
     }
-}
 
+
+    public static void main(String[] args) {
+        String searchTarget = "urn:iot-hub-lge:service:iot:1";
+
+        /* Find upnp device */
+        UpnpClient upnpc = new UpnpClient(searchTarget);
+        HashMap<String, String> response = upnpc.discoverDevice();
+
+        String wakeupField = response.get("WAKEUP");
+        String locationField = response.get("LOCATION");
+
+        System.out.println("WOL: " + wakeupField);
+        System.out.println("DEVLOC: " + locationField);      
+
+        /* Get XML description about device description */
+        String desc = upnpc.getDesc(locationField);      
+        String scpdURL = null;
+
+        upnpc.setDeviceDescription(desc);       
+        String scpdLocation = upnpc.getSCPDURL();
+
+        /* Get XML description about state variables */
+        if((desc != null) && (locationField != null) && (scpdLocation != null)) {
+            scpdURL = locationField + scpdLocation;
+            desc = upnpc.getDesc(scpdURL);
+            System.out.println("State Variables: " + desc);
+        }
+
+        /* Turn power on */
+        String macStr = extractMac(wakeupField);
+        String ipStr = "192.168.0.255";
+        executeWOL(macStr, ipStr);
+    }
+}
