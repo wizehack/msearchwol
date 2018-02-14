@@ -37,7 +37,7 @@ public class Main {
 
 
     public static void main(String[] args) {
-        String searchTarget = "urn:iot-hub-lge:service:iot:1";
+        String searchTarget = "urn:dial-multiscreen-org:service:dial:1";
 
         /* Find upnp device */
         UpnpClient upnpc = new UpnpClient(searchTarget);
